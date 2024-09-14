@@ -1,0 +1,18 @@
+{
+  "name": "cibusautobuy",
+  "version": "1.0.0",
+  "description": "playwright script use to automate buying shupersal vouchers at end of day",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "playwright": "^1.44.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.1"
+  }
+}
