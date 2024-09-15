@@ -15,7 +15,7 @@ const shuperSalPageUrl = 'https://consumers.pluxee.co.il/restaurants/pickup/rest
 
     const browser = await chromium.launch({ headless: false });
     const page = await browser.newPage();
-    await page.goto('https://consumers.pluxee.co.il/login');    
+    await page.goto('https://consumers.pluxee.co.il/login');
 
     // Fill user name
     await fillInput(page, 'input#user', userName);
@@ -33,15 +33,15 @@ const shuperSalPageUrl = 'https://consumers.pluxee.co.il/restaurants/pickup/rest
     await clickButton(page, 'button.login-btn');
 
     // Get remaining budget
-    const budget = 263;//await getBudget(page);
+    const budget = 45;//await getBudget(page);
 
     await BuyVounchers(page, budget);
 
 
 
-    console.log(budget); 
+    console.log(budget);
 
-    
+
 
 
     //await page.screenshot({ path: 'example.png' });
@@ -49,51 +49,78 @@ const shuperSalPageUrl = 'https://consumers.pluxee.co.il/restaurants/pickup/rest
 })();
 
 async function clearCart(page){
-  await page.waitForSelector('button.deleteBtn');
-  await page.click('button.deleteBtn');
-  await page.waitForSelector('button.yesBtn');
-  await page.click('button.yesBtn');
+  console.log("Clearing cart");
+  await clickButton(page, 'button.deleteBtn');
+  await clickButton(page, 'button.yesBtn');
+  console.log("Cart cleared");
 }
 
+async function confirmBuy(page){
+  console.log("Confirming buy");
+  await clickButton(page, 'button.finishOrderBtn');
+  await clickButton(page, 'button.submit-order');
+  console.log("Buy confirmed");
+}
+
+async function waitForNoItems(page)
+{
+  console.log("Waiting for no items in cart");
+  await page.waitForFunction(() => {
+    const cartIcon = document.querySelector('app-icon-cart');
+    if (!cartIcon) return false;
+    return !cartIcon.querySelector('.show-counter');
+  });
+  console.log("No items in cart");
+}
 async function goToCart(page){
   try {
+    console.log("Going to cart");
     await page.waitForSelector('cib-cart-wrap');
     const component = await page.$('cib-cart-wrap');
     await component.waitForSelector('span:text("1")');
     await component.click();
+    console.log("Cart opened");
   } catch (error) {
     console.error('Error in goToCart:', error);
   }
 }
 
 async function BuyVounchers(page, budget) {
-
+  console.log("BuyVounchers");
   await page.waitForSelector('div.budget');
   await page.goto(shuperSalPageUrl);
   await page.waitForSelector('div.budget');
-  const  matchingCards = await findVoucherValues2(page);
-
-    const vouchersToBuy = minElementsToReachOrExceedTarget(budget, [...matchingCards.keys()]);
+  let cardKeys = (await findVoucherValues2(page)).keys();
+    const vouchersToBuy = minElementsToReachOrExceedTarget(budget, [...cardKeys]);
     console.log(vouchersToBuy);
     for( let voucherValue of vouchersToBuy){
+        let matchingCards = await findVoucherValues2(page);
         await buySingleVoucher(page,matchingCards,voucherValue);
         await page.goto(shuperSalPageUrl);
         await page.waitForSelector('div.budget');
     }
-    
-
+    console.log("Done buying vouchers");
 }
 async function buySingleVoucher(page,matchingCards,voucherValue){
-
+    console.log("buying a single voucher for ",voucherValue);
     const card = matchingCards.get(voucherValue);
     await addVouchersToCart(page,card);
     await goToCart(page);
-    await clearCart(page);
-    //await card.click();
-        
+    const isTest = false; // change to false to actually buy
+    if(isTest){
+      await clearCart(page)
+    }
+    else{
+      await confirmBuy(page)
+    }
+    const isCleared = await waitForNoItems(page);
+    console.log("Cart is empty");
 }
 
+
 async function addVouchersToCart(page,card){
+  console.log("adding to cart");
+
   await card.waitForSelector('button');
   const button = await card.$$('button');
   await button[0].click();
@@ -132,14 +159,11 @@ async function findVoucherValues2(page){
           if (text.startsWith('₪')) {
           const number = Number(text.replace('₪', ''));
               if(!matchingCards.has(number)) {
-                  console.log(number);
                   matchingCards.set(number, card);
               }
           }
       }
-      // Now you can work with the labels array
   }
-
   return matchingCards;
 }
 
@@ -150,6 +174,7 @@ async function fillInput(page, selector, value) {
 }
 
 async function clickButton(page, selector) {
+    console.log("clicking button", selector);
     await page.waitForSelector(selector);
     await page.click(selector);
 }
@@ -158,10 +183,9 @@ async function getBudget(page) {
     const budgetSelector = 'div.budget.ng-star-inserted';
     await page.waitForSelector(budgetSelector);
     const budgetText = await page.textContent(budgetSelector);
-    const regex = /\d+\.\d+/; // This regex matches any sequence of one or more digits followed by a dot and one or more digits
+    const regex = /\d+\.\d+/;
     const match = budgetText.match(regex);
     const number = match ? parseFloat(match[0]) : null;
-    //console.log(number); 
     return number;
 }
 
@@ -196,7 +220,7 @@ function findSum(target, array) {
     const windowSize = Math.max(...array); // Get the maximum element for window size
     const dp = new Array(windowSize + 1).fill(Infinity); // Limited size dp table
     dp[0] = 0; // Base case
-  
+
     for (let num of array) {
       // Iterate through each number in the array
       for (let i = 1; i <= windowSize; i++) {
@@ -206,15 +230,15 @@ function findSum(target, array) {
         }
       }
     }
-  
+
     if (dp[target] === Infinity) {
       return null;
     }
-  
+
     // Backtracking logic remains the same (can use a separate function)
     return backtrack(target, array, dp, windowSize);
   }
-  
+
   function backtrack(target, array, dp, windowSize) {
     const combination = [];
     let i = target;
@@ -234,11 +258,11 @@ function findSum(target, array) {
     if (target in memo) {
       return memo[target];
     }
-  
+
     if (target === 0) {
       return [];
     }
-  
+
     let minCombination = null;
     for (const num of array) {
       const remaining = target - num;
@@ -249,13 +273,13 @@ function findSum(target, array) {
         }
       }
     }
-  
+
     memo[target] = minCombination;
     return minCombination;
   }
-  
+
   // Example usage remains the same
-  
+
 // Test input
 // const target = 267;
 // const array = [15, 30, 40, 50, 100, 200];
